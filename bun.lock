@@ -1,0 +1,13 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "dependencies": {
+        "glfw3": "^1.0.0",
+      },
+    },
+  },
+  "packages": {
+    "glfw3": ["glfw3@1.0.0", "", {}, "sha512-5M/E1F5sDPqxbxTIVJaR/eO09SUCLi/73PcqtTntNJMK0u7yWi4siST4jN14K3h/gvweY8k1GbM+0HVWpt8VWg=="],
+  }
+}

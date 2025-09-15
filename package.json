@@ -1,0 +1,6 @@
+{
+  "dependencies": {},
+  "scripts": {
+    "start": "zig build && bun run src/main.js --cwd ."
+  }
+}
