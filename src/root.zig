@@ -43,7 +43,7 @@ const Triangle = struct {
         var height: c_int = undefined;
         var nr_channels: c_int = undefined;
         stb.stbi_set_flip_vertically_on_load(1);
-        const data = stb.stbi_load("src/texture.png", &width, &height, &nr_channels, 0);
+        const data = stb.stbi_load("src/assets/texture.png", &width, &height, &nr_channels, 0);
 
         var texture_handle: gl.GLuint = undefined;
         gl.glGenTextures(1, &texture_handle);
@@ -61,7 +61,7 @@ const Triangle = struct {
         defer _ = gpa.deinit();
         const allocator = gpa.allocator();
 
-        const scene = assimp.aiImportFile("src/Cat.obj", assimp.aiProcess_Triangulate | assimp.aiProcess_JoinIdenticalVertices);
+        const scene = assimp.aiImportFile("src/assets/Cat.obj", assimp.aiProcess_Triangulate | assimp.aiProcess_JoinIdenticalVertices);
         defer assimp.aiReleaseImport(scene);
 
         if (scene == null) {
@@ -252,8 +252,9 @@ const Framebuffers = struct {
 };
 
 fn getChar(chars: *const fonts.Chars, value: u8) u8 {
+    const value_big: c_int = @intCast(value);
     const range = chars.max - chars.min;
-    const value_adjusted = chars.max - @divTrunc(value * range, 255);
+    const value_adjusted = chars.min + @divTrunc(value_big * range, 255);
     var last = chars.chars[0];
 
     for (chars.chars) |char| {
@@ -268,14 +269,14 @@ fn getChar(chars: *const fonts.Chars, value: u8) u8 {
 }
 
 pub export fn showCat() void {
+    std.debug.print("😺\n", .{});
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
     defer _ = gpa.deinit();
 
     const chars = fonts.getChars();
 
-    for (chars.chars[0..fonts.NUM_CHARS]) |char| {
-        std.debug.print("{c}: {}\n", .{ char.character, char.opacity });
-    }
+    std.debug.print("min: {}, max: {}\n", .{ chars.min, chars.max });
 
     const allocator = gpa.allocator();
 
@@ -283,9 +284,18 @@ pub export fn showCat() void {
         std.debug.print("Failed to initialise GLFW!", .{});
         return;
     }
+    defer gl.glfwTerminate();
 
     const curses_window = ncurses.initscr();
     defer _ = ncurses.endwin();
+
+    _ = ncurses.cbreak();
+    _ = ncurses.curs_set(0);
+    defer _ = ncurses.curs_set(1);
+
+    defer _ = ncurses.flushinp();
+
+    ncurses.wtimeout(curses_window, 0);
 
     gl.glfwWindowHint(gl.GLFW_CONTEXT_VERSION_MAJOR, 3);
     gl.glfwWindowHint(gl.GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -339,14 +349,15 @@ pub export fn showCat() void {
     defer allocator.free(buffers[1]);
 
     var frame: u32 = 0;
-    var last = gl.glfwGetTime();
+    const start = gl.glfwGetTime();
+    var last = start;
     while (gl.glfwWindowShouldClose(window) == gl.GLFW_FALSE) {
         const now = gl.glfwGetTime();
         //        const delta = now - last;
         last = now;
 
-        const new_width = ncurses.getmaxx(curses_window) + 1;
-        const new_height = ncurses.getmaxy(curses_window) + 1;
+        const new_width = ncurses.getmaxx(curses_window);
+        const new_height = ncurses.getmaxy(curses_window);
         const size_changed = (new_width != width) or (new_height != height);
         width = new_width;
         height = new_height;
@@ -385,7 +396,7 @@ pub export fn showCat() void {
         gl.glfwSwapBuffers(window);
         gl.glfwPollEvents();
 
-        //        _ = ncurses.clear();
+        //_ = ncurses.clear();
 
         const refresh = size_changed or frame == 0;
         for (0.., buffers[frame % 2], buffers[(frame + 1) % 2]) |pixel_i, pixel, old_pixel| {
@@ -402,11 +413,11 @@ pub export fn showCat() void {
         _ = ncurses.refresh();
 
         frame += 1;
+
+        if (now - start > 5.0) {
+            break;
+        }
     }
-
-    gl.glfwTerminate();
-
-    std.debug.print("😺\n", .{});
 }
 
 fn framebuffer_size_callback(_: ?*gl.GLFWwindow, width: c_int, height: c_int) callconv(.c) void {

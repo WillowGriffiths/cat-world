@@ -1,6 +1,6 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -8,49 +8,52 @@
 #include "fonts.h"
 
 struct Chars getChars() {
-    FT_Library ft;
+  FT_Library ft;
 
-    FT_Init_FreeType(&ft);
+  FT_Init_FreeType(&ft);
 
-    FT_Face face;
-    FT_New_Face(ft, "src/fonts/arial.ttf", 0, &face);
+  FT_Face face;
+  FT_New_Face(ft, "src/fonts/FiraCode-Regular.ttf", 0, &face);
 
-    FT_Set_Pixel_Sizes(face, 24, 48);
+  FT_Set_Pixel_Sizes(face, 24, 48);
 
-    struct Chars chars;
+  struct Chars chars;
 
-    for (int c = MIN_CHAR; c < MAX_CHAR; c++) {
-        FT_Load_Char(face, c, FT_LOAD_RENDER);
+  for (int i = 0; i < NUM_CHARS; i++) {
+    char c = MIN_CHAR + i;
+    FT_Load_Char(face, c, FT_LOAD_RENDER);
 
-        int sum = 0;
-        int pixels = face->glyph->bitmap.width * 48;
-        for (int i = 0; i < pixels; i++) {
-            sum += face->glyph->bitmap.buffer[i];
-        }
-
-        int opacity = sum / pixels;
-
-        chars.chars[c - MIN_CHAR].opacity = opacity;
-        chars.chars[c - MIN_CHAR].character = c;
+    long sum = 0;
+    long pixels = face->glyph->bitmap.width * 48;
+    for (int i = 0; i < pixels; i++) {
+      sum += face->glyph->bitmap.buffer[i];
     }
 
-    bool swapped = false;
-    do {
-        swapped = false;
+    long opacity = sum / pixels;
 
-        for (int i = 0; i < NUM_CHARS; i++) {
-            if (chars.chars[i].opacity > chars.chars[i + 1].opacity) {
-                struct CharInfo swap = chars.chars[i];
-                chars.chars[i] = chars.chars[i + 1];
-                chars.chars[i + 1] = swap;
+    printf("%d %d %d\n", sum, pixels, opacity);
 
-                swapped = true;
-            }
-        }
-    } while (swapped);
+    chars.chars[i].opacity = opacity;
+    chars.chars[i].character = c;
+  }
 
-    chars.min = chars.chars[0].opacity;
-    chars.max = chars.chars[NUM_CHARS - 1].opacity;
+  bool swapped;
+  do {
+    swapped = false;
 
-    return chars;
+    for (int i = 0; i < NUM_CHARS; i++) {
+      if (chars.chars[i].opacity > chars.chars[i + 1].opacity) {
+        struct CharInfo swap = chars.chars[i];
+        chars.chars[i] = chars.chars[i + 1];
+        chars.chars[i + 1] = swap;
+
+        swapped = true;
+      }
+    }
+  } while (swapped);
+
+  chars.min = chars.chars[0].opacity;
+  chars.max = chars.chars[NUM_CHARS - 1].opacity;
+
+  return chars;
 }
